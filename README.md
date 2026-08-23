@@ -22,6 +22,14 @@ diverge almost immediately:
 | Login hook | `tty`-based test | `tty` test **breaks on every restart** |
 | Font size | 12 (small panel) | 14 (larger panel) |
 
+![The pi-4 console: kmscon rendering a full-screen TUI with Nerd Font glyphs at native panel resolution](assets/console-pi4.png)
+
+*An actual screenshot — not a photo of a monitor. Captured over SSH by reading
+kmscon's DRM framebuffer out of `/dev/mem` with `scripts/grab-console.py`, since
+kmscon never touches `/dev/fb0`. Note the box-drawing, disclosure triangles and
+`❯` chevrons all rendering properly: on a stock Linux VT every one of those is a
+`▯`.*
+
 **[→ Read the full write-up: `ARTICLE.md`](ARTICLE.md)**
 
 ## Contents
@@ -38,6 +46,7 @@ scripts/install-nerd-font.sh     system-wide Nerd Font install + verification
 scripts/assistant-tui.sh         the launcher the console actually runs
 scripts/preflight.sh             12-point verification checklist
 scripts/test-on-spare-vt.sh      exercise the real unit on tty4, never on tty1
+scripts/grab-console.py          screenshot the live console via DRM + /dev/mem
 configs/wifi-powersave-off.conf  NetworkManager - the glitchy-typing fix
 ```
 

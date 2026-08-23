@@ -562,6 +562,53 @@ up. Save the reboot for when you're physically at the keyboard.
 
 ---
 
+## Bonus: screenshotting a console that has no X server
+
+You can't `import` or `scrot` a bare VT, and on this Pi you can't use `fbgrab`
+either — `/dev/fb0` reads `blank=4` (powered down) with **zero** processes
+holding it, because kmscon renders through DRM/KMS and never touches the
+framebuffer device. Grab it there instead. DRM debugfs names the live buffer:
+
+```bash
+sudo cat /sys/kernel/debug/dri/1/framebuffer
+#   framebuffer[725]:
+#       allocated by = kmscon
+#       format=XR24 little-endian
+#       size=1680x1050
+#       pitch[0]=6720
+#       dma_addr=0x00000000cfb00000
+```
+
+That `dma_addr` lets you read the pixels straight out of `/dev/mem` (needs
+`CONFIG_STRICT_DEVMEM` unset, which is the default here). `scripts/grab-console.py`
+does exactly that and writes a PNG using only `zlib` + `struct` — no dependencies
+on the Pi.
+
+☠️ **The trap: on the Pi 4 `dma_addr` is a VideoCore BUS address, not a CPU
+physical address.** Read it verbatim and you get unrelated RAM — which decodes to
+*convincing colour noise*, not an obviously-broken black frame. I shipped one of
+those before looking at it. Strip the alias:
+
+```python
+BUS_ALIAS = 0xC0000000
+phys = DMA - BUS_ALIAS if DMA >= BUS_ALIAS else DMA
+```
+
+★ **The cheap tell is compressibility.** A console screen is mostly flat
+background and compresses hugely; random memory doesn't:
+
+| capture | PNG size | zlib ratio |
+|---|---|---|
+| wrong address (noise) | 3.7 MB | 0.985 |
+| correct address (console) | 88 KB | **0.005** |
+
+The script computes that ratio and warns you when a capture looks like noise, so
+it can't silently hand you garbage. Which is the same lesson as the preflight bug
+above, in a different costume: **`rc=0` and a valid 1680x1050 PNG were both true
+of the broken capture.** Verify the artifact, not the exit code.
+
+---
+
 ## The five things worth carrying away
 
 1. **"Package not found" on a Pi is usually an architecture story, not a mirror
