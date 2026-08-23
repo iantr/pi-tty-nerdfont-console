@@ -305,10 +305,29 @@ text just sits there.
 
 ```bash
 PID=$(pgrep -f 'kmscon --vt=tty1' | head -1)
-sudo lsof -p "$PID" | grep -cE '/dev/dri|/dev/fb'   # 0 == drawing to NOTHING
+sudo sh -c "readlink /proc/$PID/fd/* 2>/dev/null" | grep -E '^/dev/(dri|fb)'
+#   /dev/dri/card1        <- healthy: it holds the DISPLAY controller
+#   (no output)           <- drawing to NOTHING
 ```
 
 Zero on a running console is the whole diagnosis. Healthy is non-zero.
+
+☠️ **Two ways to get a false alarm out of this probe, both of which report a
+perfectly healthy console as broken** — and since the output is indistinguishable
+from the real failure, they'll send you chasing a bug that doesn't exist:
+
+- **`sudo lsof -p "$PID"`** can come back with essentially nothing for a root-owned
+  process depending on how it's invoked (I hit this over sudo-on-SSH: one line of
+  output, zero matches, console completely fine). The `/proc` symlinks are the
+  authoritative source; `lsof` is a convenience wrapper over them.
+- **`sudo readlink /proc/$PID/fd/*`** — the glob expands **as the calling user,
+  before `sudo` runs**. You can't read that root-owned directory, so it silently
+  matches nothing and prints nothing. The glob has to expand *inside* the
+  privileged shell, hence `sudo sh -c "..."` above.
+
+> **A health check that can only ever say FAIL is worse than no check.** Validate
+> any probe against a machine you *know* is healthy before you trust its verdict on
+> a broken one.
 
 ☠️ One more thing that made this hard to see: **a background VT never spawns its
 login**, so a test on tty4 shows no children and no DRM fds *even when the config is
@@ -487,7 +506,7 @@ counterintuitive when you're staring at a working-looking terminal.
 | 7 | unit resolves | `systemctl cat kmsconvt@tty1 \| grep ExecStart` |
 | 8 | seat0 has only the display card | `loginctl seat-status seat0 \| grep drm:` |
 | 9 | tty1 ownership | `systemctl is-enabled getty@tty1 kmsconvt@tty1` |
-| 10 | kmscon holds video fds | `sudo lsof -p $(pgrep -f 'kmscon --vt=tty1') \| grep -cE '/dev/dri\|/dev/fb'` |
+| 10 | kmscon holds video fds | `sudo sh -c "readlink /proc/PID/fd/*" \| grep /dev/dri` |
 | 11 | fallback getty not active | `systemctl is-active getty@tty1` |
 
 `scripts/preflight.sh` runs all of these.

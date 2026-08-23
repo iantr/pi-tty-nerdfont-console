@@ -40,14 +40,27 @@ chk "9  tty1 owned by kmscon not getty"   bash -c "[ \"\$(systemctl is-enabled k
 # kmscon can start, take the VT, spawn the login shell (so SSH and tmux look
 # perfectly healthy) and never open a DRM device at all - drawing to nothing
 # while the kernel framebuffer's last text stays frozen on screen.
+#
+# Read /proc/PID/fd directly rather than parsing lsof. lsof can return nothing
+# useful for a root-owned process depending on how it was invoked (seen for
+# real over sudo-on-SSH), which reports a PERFECTLY HEALTHY console as 0 fds -
+# a false alarm that mimics the exact failure this check exists to catch.
+# The /proc symlinks are the authoritative source.
 printf '%-46s' "10 kmscon holds video fds"
 PID=$(pgrep -f 'kmscon --vt=tty1' | head -1)
 if [ -z "$PID" ]; then
     echo "SKIP (not running yet)"
 else
-    N=$(sudo lsof -p "$PID" 2>/dev/null | grep -cE '/dev/dri|/dev/fb')
-    if [ "${N:-0}" -gt 0 ]; then echo "PASS ($N fds)"
-    else echo "FAIL (0 == drawing to NOTHING)"; fail=$((fail+1)); fi
+    # NB: the glob must expand INSIDE the privileged shell. Writing
+    # `sudo readlink /proc/$PID/fd/*` expands it as the calling user first,
+    # who cannot read that root-owned dir, so it silently yields nothing and
+    # reports a healthy console as FAIL.
+    CARDS=$(sudo sh -c "readlink /proc/$PID/fd/* 2>/dev/null" | grep -E '^/dev/(dri|fb)' | sort -u)
+    if [ -n "$CARDS" ]; then
+        echo "PASS ($(echo "$CARDS" | paste -sd, -))"
+    else
+        echo "FAIL (0 == drawing to NOTHING)"; fail=$((fail+1))
+    fi
 fi
 
 # 11: kmsconvt@.service ships OnFailure=getty@%i.service. A plain login prompt
