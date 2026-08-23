@@ -1,4 +1,4 @@
-# pretty-tty
+# pi-tty-nerdfont-console
 
 **Beautiful text-mode consoles on a Raspberry Pi.**
 
