@@ -1,0 +1,22 @@
+# /etc/udev/rules.d/61-kmscon-v3d-offseat.rules
+#
+# The Pi 4 exposes TWO DRM nodes:
+#   card0 = platform-fec00000.v3d  RENDER-ONLY - no CRTCs, no connectors
+#   card1 = platform-gpu (vc4)     owns both HDMI outputs
+# The card1-HDMI-A-* entries under /sys/class/drm/ are the authoritative tell.
+#
+# kmscon enumerates seat0's DRM devices, opens card0, and spins forever on
+#   ERROR: drm_shared: cannot retrieve drm resources
+# It does NOT fall through to card1. --gpus=aux is no better, and --gpus=primary
+# matches nothing at all (see autologin.conf).
+#
+# TAG-="seat" does NOT work here - the tags come straight back. Reassign
+# ID_SEAT instead, moving the render-only node off seat0 entirely.
+#
+# Verify:  loginctl seat-status seat0 | grep -oE 'drm:card[0-9]+$' | sort -u
+#          -> must print ONLY drm:card1
+#
+# WARNING: removing this rule while kmscon is running makes it segfault
+# immediately (card0 reappears underneath it). Stop the unit first.
+
+SUBSYSTEM=="drm", KERNEL=="card0", ENV{ID_PATH}=="platform-fec00000.v3d", ENV{ID_SEAT}="seat-v3d"
