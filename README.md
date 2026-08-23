@@ -1,4 +1,6 @@
-# Beautiful text-mode consoles on a Raspberry Pi
+# pretty-tty
+
+**Beautiful text-mode consoles on a Raspberry Pi.**
 
 Turning a Raspberry Pi into a **wall-mounted text terminal that actually looks good** —
 Nerd Font glyphs, true colour, native panel resolution, tmux, and an auto-launching
