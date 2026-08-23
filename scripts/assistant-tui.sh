@@ -3,7 +3,7 @@
 #
 # Connects to a self-hosted AI assistant's terminal UI on another host and
 # reconnects automatically if the link drops. Replace the ssh line with
-# whatever TUI you want on the wall (btop, k9s, a local assistant binary...).
+# whatever TUI you want on screen (btop, k9s, a local assistant binary...).
 export TERM=xterm-256color
 clear
 while true; do

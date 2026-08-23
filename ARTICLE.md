@@ -8,10 +8,11 @@ and the two builds diverge almost immediately.*
 
 ## Why bother
 
-I wanted a small always-on screen on the wall that does exactly one thing: show a
+I wanted an always-on screen that does exactly one thing: show a
 full-screen terminal UI for a self-hosted AI assistant. Type at it, get an answer,
 walk away. No mouse, no browser, no login screen, no desktop environment eating
-300 MB of RAM to draw one terminal.
+300 MB of RAM to draw one terminal. Mine ended up as a prominent terminal in my
+office, but nothing here cares where you put it.
 
 The obvious answer is the Linux virtual console — it's already there, it boots in
 two seconds, and it costs nothing. The problem is that it's *ugly*, and in a very
@@ -208,7 +209,7 @@ stall is gone. Occasional outliers remain and are a different mechanism (neighbo
 airtime — 17–23% OBSS on that channel). The fix is *"the 1220 ms stalls are gone"*,
 not *"latency solved"*.
 
-Cost of disabling power save: roughly 30–60 mW. Irrelevant on a mains-powered wall
+Cost of disabling power save: roughly 30–60 mW. Irrelevant on a mains-powered
 console.
 
 ---
@@ -672,7 +673,7 @@ of the broken capture.** Verify the artifact, not the exit code.
    a unit, counting `/dev/dri` fds proves a display. `ls` proves nothing.
 5. **Never key a login hook off a pty number.** Use `XDG_SEAT`.
 
-The payoff is worth all of it: a silent, fanless board on the wall, booting straight
+The payoff is worth all of it: a silent, fanless board booting straight
 into a full-screen terminal with proper glyphs and true colour, ready to answer
 questions. No desktop, no browser, no login screen.
 

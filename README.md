@@ -5,15 +5,16 @@
 ## Beautiful Text-Mode Terminals on a Raspberry Pi
 
 The purpose of this project is to show how to turn a Raspberry Pi into a
-wall-mounted text terminal that actually looks good — Nerd Font glyphs, true
+text terminal that actually looks good — Nerd Font glyphs, true
 colour, native panel resolution, tmux, and a full-screen TUI that starts by
 itself. No X, no Wayland compositor, no desktop.
 
-I set this up because I wanted a small always-on screen showing a self-hosted AI
-assistant. Those TUIs are drawn with Nerd Font glyphs, and on a stock Linux
-console every one of them comes out as `▯`. I found the documentation scattered
-and mostly wrong for the Pi, so I'm putting this out there along with detailed
-instructions so other folks might have an easier time.
+I set this up because I wanted an always-on screen showing a self-hosted AI
+assistant — mine sits as a prominent terminal in my office. Those TUIs are drawn
+with Nerd Font glyphs, and on a stock Linux console every one of them comes out
+as `▯`. I found the documentation scattered and mostly wrong for the Pi, so I'm
+putting this out there along with detailed instructions so other folks might have
+an easier time.
 
 The stock Linux virtual console can't do the job. It renders a bitmap font at a
 fixed 8x16 cell, has no font fallback, and caps out at 512 glyphs. The fix is
@@ -45,8 +46,8 @@ properly. On a stock Linux VT every one of those is a `▯`.
 
 Here's the same panel at `font-size=14` instead of 11. Because kmscon renders
 TrueType through Pango rather than a fixed bitmap cell, font size is a one-line
-config change and the grid re-flows to suit — 152x49 in this case. Mounted on a
-wall a few feet away, bigger wins.
+config change and the grid re-flows to suit — 152x49 in this case. Sitting a few
+feet away, bigger wins.
 
 The banner at the top of this README was made on that console with
 [`toilet`](https://caca.zoy.org/wiki/toilet). It's a fair test of whether your
