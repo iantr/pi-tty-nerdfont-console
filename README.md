@@ -1,5 +1,7 @@
 # pi-tty-nerdfont-console
 
+![pi-tty-nerdfont](assets/banner.png)
+
 **Beautiful text-mode consoles on a Raspberry Pi.**
 
 Turning a Raspberry Pi into a **wall-mounted text terminal that actually looks good** —
@@ -32,6 +34,26 @@ kmscon never touches `/dev/fb0`. Note the box-drawing, disclosure triangles and
 `❯` chevrons all rendering properly: on a stock Linux VT every one of those is a
 `▯`.*
 
+![The same console at font-size 14 — fewer columns, heavier strokes, easier to read from across a room](assets/console-pi4-font14.png)
+
+*The same panel at `font-size=14` instead of 11. Because kmscon renders TrueType
+through Pango rather than a fixed 8x16 bitmap cell, font size is a one-line config
+change and the grid re-flows to suit — here 152x49. Wall-mounted a few feet away,
+bigger wins.*
+
+**The banner at the top of this README** was generated on that console with
+[`toilet`](https://caca.zoy.org/wiki/toilet), and it's a fair test of whether your
+setup is working:
+
+```bash
+sudo apt install toilet
+toilet -w 152 -f pagga -F gay "pi-tty-nerdfont"
+```
+
+`pagga` is drawn entirely from Unicode block elements, and `-F gay` colours it with
+true-colour escapes. On a correctly configured kmscon console you get the image above.
+On a stock Linux VT you get a wall of `▯` in eight colours.
+
 **[→ Read the full write-up: `ARTICLE.md`](ARTICLE.md)**
 
 ## Contents
@@ -50,6 +72,9 @@ scripts/preflight.sh             12-point verification checklist
 scripts/test-on-spare-vt.sh      exercise the real unit on tty4, never on tty1
 scripts/grab-console.py          screenshot the live console via DRM + /dev/mem
 configs/wifi-powersave-off.conf  NetworkManager - the glitchy-typing fix
+assets/banner.png                the README banner, rendered on the console itself
+assets/console-pi4.png           the pi-4 console at font-size 11
+assets/console-pi4-font14.png    the same console at font-size 14
 ```
 
 ## Quick start
