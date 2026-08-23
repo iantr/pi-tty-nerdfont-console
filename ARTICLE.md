@@ -35,7 +35,10 @@ terminal emulator that talks directly to KMS/DRM, renders TrueType fonts through
 Pango, and runs *as* the VT instead of on top of one. You point systemd at
 `kmsconvt@tty1` instead of `getty@tty1` and the console is simply better.
 
-Everything from here is what actually went wrong, on two boards, and why.
+I found the documentation for this scattered and, for the Pi specifically, often
+wrong — so everything from here is what actually went wrong on two boards, and
+why. I've kept the dead ends in, because the wrong turns are the part that cost
+me the time.
 
 ---
 
@@ -93,6 +96,16 @@ value before you set a new one.
 
 ### tmux under kmscon
 
+The TUI runs inside tmux rather than directly on the console, and that's worth a
+moment because it's doing real work. tmux keeps the session alive on the Pi
+itself, so the program survives an SSH drop, a network blip, or a restart of the
+console software. You come back to exactly the screen you left.
+
+It also means you can restart kmscon to change the font and your session is
+*still there* underneath, which I leaned on more than once while building this.
+
+Two lines are required to make it work under a kmscon login:
+
 ```
 # ~/.tmux.conf
 set-option -g default-command bash
@@ -102,6 +115,43 @@ set-environment -gru DBUS_SESSION_BUS_ADDRESS
 and export `TMUX_SYSTEMD=0` before launching. Without it, tmux tries to create a
 systemd cgroup scope for the session, which fails under a kmscon login, and the
 session dies at birth.
+
+#### Just enough tmux to get started
+
+If you've not used tmux before, nearly every command starts with a **prefix**:
+hold `Ctrl` and press `b`, then let go of both, then press one more key. Two
+steps, not a chord. It's usually written `Ctrl+B c`, meaning "prefix, then c".
+
+| Keys | What it does |
+|---|---|
+| `Ctrl+B` then `c` | **C**reate a new window (a fresh shell alongside your TUI) |
+| `Ctrl+B` then `n` | **N**ext window |
+| `Ctrl+B` then `p` | **P**revious window |
+| `Ctrl+B` then `w` | List all windows and pick one |
+| `Ctrl+B` then `d` | **D**etach — leaves everything running, drops you to a plain shell |
+| `Ctrl+B` then `?` | Every key binding there is |
+
+**`Ctrl+C` is not a tmux command.** It's the ordinary Unix interrupt and it stops
+whatever program is running in the current window — useful when something is
+stuck or scrolling forever. It doesn't touch tmux and it won't close the window.
+
+Reattach after detaching, or when you come in over SSH:
+
+```bash
+tmux attach -t main
+```
+
+The bar along the bottom of the screen belongs to tmux, not to your program. The
+left end lists the windows and the one marked with an asterisk is the one you're
+looking at.
+
+One gotcha that catches people: **tmux reads its config once, when the server
+starts.** Editing `~/.tmux.conf` does nothing to a session that's already
+running. To apply changes live:
+
+```bash
+tmux source-file ~/.tmux.conf
+```
 
 ### And one non-obvious performance trap: WiFi power save
 
@@ -625,6 +675,10 @@ of the broken capture.** Verify the artifact, not the exit code.
 The payoff is worth all of it: a silent, fanless board on the wall, booting straight
 into a full-screen terminal with proper glyphs and true colour, ready to answer
 questions. No desktop, no browser, no login screen.
+
+Everything here — the configs, the build script, the preflight checks and the
+screenshot tool — is in the repo. Give it a try. If you hit something I didn't,
+open an issue and I'll add it.
 
 ---
 
