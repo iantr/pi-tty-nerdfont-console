@@ -68,6 +68,7 @@ trap I hit, and why each one happens.
 ## What's in the repo
 
 ```
+install.sh                       one-shot installer - orchestrates everything below
 ARTICLE.md                       the story, both builds, every trap and why it happens
 configs/kmscon.conf              /etc/kmscon/kmscon.conf
 configs/autologin.conf           systemd drop-in for kmsconvt@tty1
@@ -88,7 +89,42 @@ assets/console-pi4-font14.png    the same console at font-size 14
 
 ## Quick start
 
-Start with the pieces specific to your board.
+If you just want it working, run the installer. It works out what your board
+needs, does it, and verifies the result:
+
+```bash
+git clone https://github.com/iantr/pi-tty-nerdfont-console.git
+cd pi-tty-nerdfont-console
+sudo bash install.sh
+```
+
+That single command installs kmscon (from apt where a package exists, from
+source where it doesn't), installs and *verifies* the Nerd Font, writes the
+config with a sensible font size for your board, applies the Pi 4 dual-DRM fix
+only if your machine actually needs it, hands `tty1` over from getty, and then
+runs the 12-point preflight so you find out about problems **before** you
+reboot rather than after.
+
+Useful flags:
+
+```bash
+sudo bash install.sh --dry-run          # show the whole plan, change nothing
+sudo bash install.sh --user pi          # which account autologs in
+sudo bash install.sh --font-size 14     # override the per-board default
+sudo bash install.sh --force            # proceed on an untested board
+```
+
+Start with `--dry-run`. It prints every step it would take without touching the
+machine.
+
+When it finishes, edit `~/assistant-tui.sh` to launch whatever you want on the
+screen, then `sudo reboot`.
+
+### Doing it by hand
+
+The installer only orchestrates the scripts and configs in this repo — nothing
+is hidden inside it. If you'd rather drive each step yourself, or you're adapting
+this to a board it doesn't know about:
 
 **64-bit Pi (`pi-4`):**
 ```bash
@@ -121,8 +157,6 @@ bash scripts/preflight.sh          # verify BEFORE rebooting
 
 Edit `--autologin <user>` in `configs/autologin.conf` to match your account, and
 point the launcher at whatever TUI you want on the screen.
-
-Give it a try. It should work.
 
 ## Getting around in tmux
 
@@ -179,6 +213,46 @@ tmux clients: /dev/pts/0: main [152x50 xterm-256color]
 **80x23** means it isn't — that's the kernel framebuffer's default, which tells
 you nothing took over the screen. The geometry alone tells you whether the build
 worked, which is handy when you're checking remotely and can't see the panel.
+
+## Other Raspberry Pi boards
+
+**This has been built and tested on exactly two boards: the Pi Zero 2 W and the
+Pi 4.** Everything else is untried, and `install.sh` will say so and ask before
+continuing.
+
+The reason isn't caution for its own sake. As the table near the top shows,
+those two boards diverged almost immediately — different packaging, different
+DRM layout, a different login hook. The board-specific parts of this repo are
+workarounds for the specific ways *those two* misbehave.
+
+The **Pi 5** in particular is likely to differ again. It moved much of its I/O
+onto the RP1 southbridge and reworked the display pipeline, so the DRM device
+enumeration — the thing the Pi 4 fix exists to correct — is not the same shape.
+The `61-kmscon-v3d-offseat.rules` file matches on `platform-fec00000.v3d`
+specifically; there is no reason to expect that path on a Pi 5. **I don't own
+one, so I haven't verified any of this.** The Pi 400 and 500 are equally untested.
+
+None of that means it won't work. kmscon isn't Pi-specific, and the OS-level
+parts of this setup — the font, the autologin drop-in, the bashrc hook, tmux —
+carry over unchanged. What needs checking on a new board is *which DRM card owns
+the display*, and the installer probes for that rather than assuming:
+
+```bash
+# which card actually owns the HDMI connectors?
+ls /sys/class/drm/            # look for cardN-HDMI-A-* entries
+udevadm info -q property -n /dev/dri/card0 | grep ID_PATH
+loginctl seat-status seat0 | grep drm
+```
+
+If kmscon starts, reports `active`, and the screen never changes, that's the
+dual-DRM symptom: it grabbed a render-only node and is drawing to nothing.
+`ARTICLE.md` walks through the whole diagnosis. Adapting the udev rule is
+usually a matter of changing the `ID_PATH` match to whatever your board calls
+its render node.
+
+**If you get this working on a Pi 5 or any other board, please open an issue or
+a PR.** A confirmed working config for one more board is the single most useful
+thing anyone could add here.
 
 ## Licence
 
