@@ -29,10 +29,15 @@ I built it twice, on two very different Pis, and they diverge almost right away:
 |---|---|---|
 | Board | Pi Zero 2 W | Pi 4 |
 | OS | Raspberry Pi OS (Raspbian) trixie, **armhf** | Debian trixie, **arm64** |
-| kmscon | `apt install kmscon` — one line | **no package exists**, build from source |
+| kmscon | packaged — `apt install kmscon` | **not packaged here**, build from source |
 | DRM | one card, just works | **two cards**, kmscon picks the wrong one and hangs |
 | Login hook | `tty`-based test | `tty` test **breaks on every restart** |
 | Font size | 12 (small panel) | 14 (larger panel) |
+
+kmscon isn't present in every distribution or on every architecture, and which
+side of that line you land on depends on your OS and release rather than on the
+board. `install.sh` handles it by asking apt and compiling kmscon locally only
+if there's no package to install.
 
 ![The pi-4 console: kmscon rendering a full-screen TUI with Nerd Font glyphs at native panel resolution](assets/console-pi4.png)
 

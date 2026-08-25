@@ -139,7 +139,7 @@ elif apt-cache policy kmscon 2>/dev/null | grep -q 'Candidate: [0-9]'; then
     run apt-get update
     run apt-get install -y kmscon tmux fontconfig
 else
-    info "No kmscon package for this architecture - building from source."
+    info "No kmscon package available here - compiling it locally instead."
     info "(this takes a few minutes)"
     run bash "$REPO_DIR/scripts/build-kmscon-arm64.sh"
 fi

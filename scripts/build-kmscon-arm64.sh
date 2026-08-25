@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Build kmscon v9.0.0 from source on 64-bit Debian (arm64) for a Pi 4.
 #
-# WHY: there is no kmscon package for arm64. It ships from the Raspbian ARMHF
-# archive only, and Debian proper dropped it years ago:
-#     apt-cache policy kmscon    # on a 32-bit Pi:
-#      *** 9.0.0-5+b1 500 ... raspbian trixie/main ARMHF Packages
-# "apt-get source kmscon" also fails - the arm64 sources.list has no deb-src.
+# WHY: kmscon is not packaged in every distribution or for every architecture,
+# so where apt cannot supply it we compile it locally instead. Availability
+# genuinely varies - Raspberry Pi OS (armhf) has it, Debian bookworm arm64 has
+# it (9.0.0-4), Debian trixie has it only in trixie-backports and not in main.
+# Do not assume from the board name: ASK APT, which is what install.sh does.
+#     apt-cache policy kmscon      # Candidate: (none)  ->  build from source
+# On a machine with no candidate, "apt-get source kmscon" will not help either
+# unless the sources.list carries a matching deb-src line.
 #
 # WHY v9.0.0 AND NOT HEAD: Debian trixie ships libtsm 4.0.2; v9.1.0 requires
 # >=4.1.0 and will not configure. v9.0.0 is also the exact version the armhf

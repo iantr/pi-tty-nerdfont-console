@@ -219,7 +219,7 @@ console.
 Same goal, wired Ethernet, bigger panel, more RAM. Every single step of the above
 that mattered broke differently.
 
-### Trap 1 — there is no `kmscon` package for arm64
+### Trap 1 — no `kmscon` package on this arch and release
 
 ```
 $ sudo apt-get install kmscon
@@ -237,12 +237,26 @@ $ apt-cache policy kmscon        # on the 32-bit Pi, where it installs fine
 ```
 
 kmscon comes from the **Raspbian armhf** archive. A 64-bit Pi runs plain Debian
-arm64 (`deb.debian.org` plus `archive.raspberrypi.com`), and **Debian proper dropped
-kmscon years ago** — there is no arm64 binary in any configured suite. `apt-get
-source kmscon` fails too, because the arm64 sources.list has no `deb-src` lines.
+arm64 (`deb.debian.org` plus `archive.raspberrypi.com`), and **on trixie there is
+no kmscon in `main`** — it lives only in `trixie-backports`, so a default
+sources.list finds nothing. `apt-get source kmscon` fails too, because the arm64
+sources.list has no `deb-src` lines.
 
-> **Lesson: "package not found" on a Pi is usually an *architecture* story, not a
-> mirror story.** Ask the working host which suite it pulled from.
+Availability really does vary by suite and architecture rather than by board:
+Raspberry Pi OS armhf has it, Debian **bookworm** arm64 has it (9.0.0-4), Debian
+trixie has it only in backports. So the useful habit isn't memorising which
+board needs a source build — it's asking the machine in front of you:
+
+```
+apt-cache policy kmscon        # Candidate: (none)  ->  build from source
+```
+
+That's exactly what `install.sh` does, which is why it doesn't need to know what
+board it's on to get this right.
+
+> **Lesson: "package not found" on a Pi is usually a *suite and architecture*
+> story, not a mirror story.** Ask apt on the machine in front of you rather
+> than assuming from the board.
 
 So: build from source. It takes about two minutes on a Pi 4.
 
