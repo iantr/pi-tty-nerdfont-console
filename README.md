@@ -77,6 +77,7 @@ install.sh                       one-shot installer - orchestrates everything be
 ARTICLE.md                       the story, both builds, every trap and why it happens
 configs/kmscon.conf              /etc/kmscon/kmscon.conf
 configs/autologin.conf           systemd drop-in for kmsconvt@tty1
+configs/resilience.conf          systemd drop-in — restart kmscon after a transient SEGV
 configs/tmux.conf                ~/.tmux.conf (the two lines that matter under kmscon)
 configs/bashrc-hook.sh           the console-launch hook (the portable version)
 configs/61-kmscon-v3d-offseat.rules   udev rule — Pi 4 dual-DRM fix
@@ -84,7 +85,7 @@ configs/wifi-powersave-off.conf  NetworkManager - the glitchy-typing fix
 scripts/build-kmscon-arm64.sh    source build for 64-bit Debian
 scripts/install-nerd-font.sh     system-wide Nerd Font install + verification
 scripts/assistant-tui.sh         the launcher the console actually runs
-scripts/preflight.sh             12-point verification checklist
+scripts/preflight.sh             13-point verification checklist
 scripts/test-on-spare-vt.sh      exercise the real unit on tty4, never on tty1
 scripts/grab-console.py          screenshot the live console via DRM + /dev/mem
 assets/banner.png                the README banner, rendered on the console itself
@@ -107,7 +108,7 @@ That single command installs kmscon (from apt where a package exists, from
 source where it doesn't), installs and *verifies* the Nerd Font, writes the
 config with a sensible font size for your board, applies the Pi 4 dual-DRM fix
 only if your machine actually needs it, hands `tty1` over from getty, and then
-runs the 12-point preflight so you find out about problems **before** you
+runs the 13-point preflight so you find out about problems **before** you
 reboot rather than after.
 
 Useful flags:
@@ -218,6 +219,51 @@ tmux clients: /dev/pts/0: main [152x50 xterm-256color]
 **80x23** means it isn't — that's the kernel framebuffer's default, which tells
 you nothing took over the screen. The geometry alone tells you whether the build
 worked, which is handy when you're checking remotely and can't see the panel.
+
+The other one-line check is which unit owns tty1:
+
+```bash
+systemctl is-active kmsconvt@tty1 getty@tty1     # want: active / inactive
+```
+
+A **plain login prompt with a blinking cursor** on the console is not a neutral
+state — it means kmscon died and `OnFailure=getty@tty1` replaced it. That prompt
+is a failure indicator, not success.
+
+## When kmscon crashes on its own
+
+kmscon v9.0.0 segfaults intermittently a second or two after start. It isn't
+reliably reproducible and it isn't caused by anything in this repo — it just
+happens sometimes, including partway through boot.
+
+That matters more than it sounds, because the stock unit has **no `Restart=`**
+and does ship `OnFailure=getty@%i.service`. So a single crash permanently demotes
+your console to a plain VT: stock font, blinking cursor, and nothing ever puts
+kmscon back. From across the room it looks exactly like the Pi hung during boot.
+
+`configs/resilience.conf` fixes that, and it deliberately uses `Restart=always`
+rather than `Restart=on-failure`, because on-failure is not enough:
+
+1. kmscon SEGVs → `OnFailure=` starts `getty@tty1`
+2. getty takes ownership of tty1
+3. `Restart=` fires, kmscon finds the VT busy, logs `destroying seat seat0 while
+   still awake: -16` (EBUSY) and exits **status 0/SUCCESS**
+4. status 0 isn't a failure, so on-failure doesn't retry — and getty has exited
+   too (`Conflicts=`), so **nothing** owns tty1
+
+For a console daemon, exiting cleanly is still wrong; it should run forever.
+The burst limit stays generous so a genuinely broken kmscon eventually falls back
+to getty rather than looping invisibly — a usable console beats a pretty one.
+
+Verify it by injecting the real failure rather than trusting the config:
+
+```bash
+sudo kill -SEGV $(pgrep -f 'kmscon --vt=tty1')
+# within ~6s: getty briefly takes tty1, then kmscon reclaims it with a NEW pid
+systemctl is-active kmsconvt@tty1 getty@tty1     # active / inactive
+```
+
+A new pid is the proof — `rc=0` from `systemctl restart` would tell you nothing.
 
 ## Other Raspberry Pi boards
 

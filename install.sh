@@ -170,6 +170,14 @@ else
 fi
 info "autologin drop-in          (--autologin $CONSOLE_USER)"
 
+# Resilience drop-in: kmscon v9.0.0 occasionally segfaults just after start, and
+# the stock unit has no Restart= (only OnFailure=getty), so one crash silently
+# demotes the console to a plain VT for good. See configs/resilience.conf.
+run install -m644 "$REPO_DIR/configs/resilience.conf" \
+    /etc/systemd/system/kmsconvt@tty1.service.d/resilience.conf
+info "resilience drop-in         (Restart=always - survives a transient SEGV)"
+
+
 # tmux.conf and the launcher belong to the user, not to root.
 run install -m644 -o "$CONSOLE_USER" -g "$CONSOLE_USER" \
     "$REPO_DIR/configs/tmux.conf" "$USER_HOME/.tmux.conf"

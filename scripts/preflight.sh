@@ -78,6 +78,22 @@ case "${G:-none}" in
     *)     echo "PASS ($G)" ;;
 esac
 
+# 13: crash resilience. kmscon v9.0.0 segfaults intermittently a second or two
+# after start. The stock unit has NO Restart= and ships OnFailure=getty, so one
+# crash permanently demotes the console to a plain VT and nothing puts it back.
+#
+# Restart=on-failure is NOT enough and must not pass this check: after a SEGV
+# getty grabs tty1, the retry finds the VT busy ("destroying seat seat0 while
+# still awake: -16") and exits status 0/SUCCESS - which on-failure ignores,
+# leaving NOTHING on tty1. Only Restart=always covers that path.
+printf '%-46s' "13 survives a transient kmscon SEGV"
+R=$(systemctl show kmsconvt@tty1 -p Restart --value 2>/dev/null)
+case "$R" in
+    always) echo "PASS (Restart=always)" ;;
+    ""|no)  echo "FAIL (no Restart= - one SEGV kills the console for good)"; fail=$((fail+1)) ;;
+    *)      echo "FAIL (Restart=$R - see configs/resilience.conf)"; fail=$((fail+1)) ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "ALL CHECKS PASSED" || echo "$fail CHECK(S) FAILED"
 exit "$fail"
